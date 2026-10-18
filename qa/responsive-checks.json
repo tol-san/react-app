@@ -1,0 +1,26 @@
+[
+  {
+    "brokenImages": 0,
+    "documentWidth": 1340,
+    "pageHeight": 8364,
+    "viewport": 1350
+  },
+  {
+    "brokenImages": 0,
+    "documentWidth": 758,
+    "pageHeight": 8701,
+    "viewport": 768
+  },
+  {
+    "brokenImages": 0,
+    "documentWidth": 365,
+    "pageHeight": 9739,
+    "viewport": 375
+  },
+  {
+    "brokenImages": 0,
+    "documentWidth": 320,
+    "pageHeight": 9649,
+    "viewport": 320
+  }
+]
