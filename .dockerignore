@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.github
+.vscode
+.vagrant
+qa
+*.log
+.DS_Store
+Thumbs.db

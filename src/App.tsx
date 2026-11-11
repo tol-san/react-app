@@ -10,10 +10,29 @@ import './App.css'
 function Carousel({ title, children, className = '' }: { title?: string; children: ReactNode; className?: string }) {
   const track = useRef<HTMLDivElement>(null)
   const [progress, setProgress] = useState(0)
+  const rafId = useRef<number | null>(null)
+
   function move(direction: number) {
     const element = track.current
     if (element) element.scrollBy({ left: direction * element.clientWidth * 0.8, behavior: 'smooth' })
   }
+
+  function handleScroll(event: React.UIEvent<HTMLDivElement>) {
+    const el = event.currentTarget
+    if (rafId.current !== null) return
+    rafId.current = window.requestAnimationFrame(() => {
+      const maxScroll = Math.max(1, el.scrollWidth - el.clientWidth)
+      setProgress(el.scrollLeft / maxScroll)
+      rafId.current = null
+    })
+  }
+
+  useEffect(() => {
+    return () => {
+      if (rafId.current !== null) window.cancelAnimationFrame(rafId.current)
+    }
+  }, [])
+
   return <section className={`carousel ${className}`} id={className}>
     <div className="section-heading">{title ? <h2>{title}</h2> : <span />}
       <div className="carousel-controls"><div className="track-progress"><span style={{ left: `${progress * 70}%` }} /></div>
@@ -21,7 +40,7 @@ function Carousel({ title, children, className = '' }: { title?: string; childre
         <button aria-label={`Next ${title || 'social links'}`} onClick={() => move(1)}><Icon name="chevron-right" /></button>
       </div>
     </div>
-    <div className="carousel-track" ref={track} onScroll={(event) => { const el = event.currentTarget; setProgress(el.scrollLeft / Math.max(1, el.scrollWidth - el.clientWidth)) }}>{children}</div>
+    <div className="carousel-track" ref={track} onScroll={handleScroll}>{children}</div>
   </section>
 }
 
@@ -47,7 +66,7 @@ function Hero() {
   }, [playing])
   const current = slides[slide]
   return <section className="hero" aria-label="Featured collections">
-    <picture key={slide}><source media="(max-width: 599px)" srcSet={asset(current.mobile)} /><img className="hero-image" src={asset(current.desktop)} alt={current.title} fetchPriority="high" /></picture>
+    <picture key={slide}><source media="(max-width: 599px)" srcSet={asset(current.mobile)} /><img className="hero-image" src={asset(current.desktop)} alt={current.title} fetchPriority="high" decoding="async" /></picture>
     <img className="obsessed-logo" src={asset(6)} alt="Tennis obsessed." />
     <div className="hero-content"><div className="hero-pagination">
       {slides.map((item, index) => <button key={item.title} className={index === slide ? 'selected' : ''} aria-label={`Show ${item.title}`} aria-pressed={index === slide} onClick={() => { setSlide(index); setPlaying(false) }} />)}
@@ -58,14 +77,14 @@ function Hero() {
 
 function ProductCard({ product, saved, onSave, onOpen }: { product: Product; saved: boolean; onSave: () => void; onOpen: () => void }) {
   return <article className="product-card"><div className="product-image">
-    <button className="product-open" onClick={onOpen} aria-label={`View ${product.name}`}><img src={asset(product.image)} alt={product.name} loading="eager" /><img className="product-alternate" src={asset(product.image + 1)} alt="" loading="eager" /></button>
+    <button className="product-open" onClick={onOpen} aria-label={`View ${product.name}`}><img src={asset(product.image)} alt={product.name} loading="lazy" decoding="async" /><img className="product-alternate" src={asset(product.image + 1)} alt="" loading="lazy" decoding="async" /></button>
     <button className={`save-button ${saved ? 'saved' : ''}`} aria-label={`${saved ? 'Remove' : 'Save'} ${product.name}`} aria-pressed={saved} onClick={onSave}><Icon name="heart" /></button>
     <span className="discount">{product.discount}% OFF | SAVE <span className="discount-amount">${(product.original - product.price).toFixed(2)}</span></span>
   </div><button className="product-name" onClick={onOpen}>{product.name}</button><p className="product-price">${product.price.toFixed(2)} <s>${product.original.toFixed(2)}</s></p></article>
 }
 
 function CategorySection({ id, title, items, className = '' }: { id: string; title?: string; items: { image: number; title: string; description?: string }[]; className?: string }) {
-  return <section id={id} className={`category-section ${className}`}>{title ? <h2>{title}</h2> : null}<div className="category-grid">{items.map((item) => <a className="category-card" href="#latest-rackets" key={item.image}><img src={asset(item.image)} alt={item.title} loading="eager" /><div className="category-label"><h3>{item.title}<Icon name="chevron-right" /></h3>{item.description ? <p>{item.description}</p> : null}</div></a>)}</div></section>
+  return <section id={id} className={`category-section ${className}`}>{title ? <h2>{title}</h2> : null}<div className="category-grid">{items.map((item) => <a className="category-card" href="#latest-rackets" key={item.image}><img src={asset(item.image)} alt={item.title} loading="lazy" decoding="async" /><div className="category-label"><h3>{item.title}<Icon name="chevron-right" /></h3>{item.description ? <p>{item.description}</p> : null}</div></a>)}</div></section>
 }
 
 function App() {
@@ -83,19 +102,19 @@ function App() {
     <StoreHeader basketCount={basket.length} savedCount={saved.length} onBasket={() => setPanel('basket')} onWishlist={() => setPanel('wishlist')} onProduct={open} />
     <main>
       <Hero />
-      <Carousel title="Shop by Department" className="department-carousel">{departments.map((department) => <a href={`#${department.target}`} className="department-card" key={department.image}><img src={asset(department.image)} alt="" /><div><h3>{department.name}</h3><p>Shop Now</p></div></a>)}</Carousel>
+      <Carousel title="Shop by Department" className="department-carousel">{departments.map((department) => <a href={`#${department.target}`} className="department-card" key={department.image}><img src={asset(department.image)} alt="" loading="lazy" decoding="async" /><div><h3>{department.name}</h3><p>Shop Now</p></div></a>)}</Carousel>
       <section className="latest-rackets" id="latest-rackets"><div className="racket-intro"><h2>The Latest Tennis Rackets</h2><p>Upgrade your game with the latest tennis rackets from the sport's leading brands.<br className="desktop-break" /> Designed for power, control and spin, these new frames feature the newest technologies to help you perform at your best on every point.</p><a href="#racket-products">Shop now</a></div>
-        <div className="racket-feature"><img className="racket-feature-image" src={asset(17)} alt="The latest Yonex, HEAD, Wilson and Babolat tennis rackets" loading="eager" /></div>
+        <div className="racket-feature"><img className="racket-feature-image" src={asset(17)} alt="The latest Yonex, HEAD, Wilson and Babolat tennis rackets" loading="lazy" decoding="async" /></div>
         <div className="product-grid" id="racket-products">{products.map((product) => <ProductCard key={product.id} product={product} saved={saved.includes(product.id)} onSave={() => save(product.id)} onOpen={() => open(product)} />)}</div>
       </section>
-      <Carousel title="New Releases" className="release-carousel">{releases.map((release) => <a className="release-card" key={release.image} href="#latest-rackets"><img src={asset(release.image)} alt={release.name} loading="eager" /><h3>{release.name}</h3><p>{release.date}</p></a>)}</Carousel>
+      <Carousel title="New Releases" className="release-carousel">{releases.map((release) => <a className="release-card" key={release.image} href="#latest-rackets"><img src={asset(release.image)} alt={release.name} loading="lazy" decoding="async" /><h3>{release.name}</h3><p>{release.date}</p></a>)}</Carousel>
       <CategorySection id="rackets" title="Tennis Rackets" items={categories.rackets} />
       <CategorySection id="shoes" title="Shop Shoes" items={categories.shoes} className="shoe-section" />
       <CategorySection id="clothing" title="Shop Clothing" items={categories.clothing} />
       <CategorySection id="clothing-collections" items={categories.collections} className="collections-section" />
-      <Carousel title="Other Departments" className="other-departments">{categories.other.map((item) => <a className="other-card" key={item.image} href="#latest-rackets"><img src={asset(item.image)} alt={item.title} loading="eager" /><h3>{item.title}</h3><span>Shop now</span></a>)}</Carousel>
-      <Carousel title="The Locker Room" className="locker-room">{articles.map((article, index) => <article className="article-card" key={article.image}><button onClick={() => setSelectedArticle(index)} aria-label={`Read ${article.title}`}><img src={asset(article.image)} alt={article.title} loading="eager" /></button><h3>{article.title}</h3><p>{article.description}</p><button className="text-link" onClick={() => setSelectedArticle(index)}>Read now</button></article>)}</Carousel>
-      <Carousel className="social-carousel">{['Instagram', 'Facebook', 'TikTok', 'YouTube'].map((name, index) => <a className="social-card" href={['https://www.instagram.com/prodirecttennis/', 'https://www.facebook.com/ProDirectTennis/', 'https://www.tiktok.com/@prodirecttennis', 'https://www.youtube.com/@ProDirectTennis'][index]} target="_blank" rel="noreferrer" key={name}><img src={asset(56 + index)} alt="" loading="eager" /><h3>{name}</h3></a>)}</Carousel>
+      <Carousel title="Other Departments" className="other-departments">{categories.other.map((item) => <a className="other-card" key={item.image} href="#latest-rackets"><img src={asset(item.image)} alt={item.title} loading="lazy" decoding="async" /><h3>{item.title}</h3><span>Shop now</span></a>)}</Carousel>
+      <Carousel title="The Locker Room" className="locker-room">{articles.map((article, index) => <article className="article-card" key={article.image}><button onClick={() => setSelectedArticle(index)} aria-label={`Read ${article.title}`}><img src={asset(article.image)} alt={article.title} loading="lazy" decoding="async" /></button><h3>{article.title}</h3><p>{article.description}</p><button className="text-link" onClick={() => setSelectedArticle(index)}>Read now</button></article>)}</Carousel>
+      <Carousel className="social-carousel">{['Instagram', 'Facebook', 'TikTok', 'YouTube'].map((name, index) => <a className="social-card" href={['https://www.instagram.com/prodirecttennis/', 'https://www.facebook.com/ProDirectTennis/', 'https://www.tiktok.com/@prodirecttennis', 'https://www.youtube.com/@ProDirectTennis'][index]} target="_blank" rel="noreferrer" key={name}><img src={asset(56 + index)} alt="" loading="lazy" decoding="async" /><h3>{name}</h3></a>)}</Carousel>
       <AboutTennis />
     </main>
     <StoreFooter />
